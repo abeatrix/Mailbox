@@ -13,6 +13,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 
 function load_mailbox(mailbox) {
+
   // Show the mailbox and hide other views
   document.querySelector('#emails-view').style.display = 'block';
   document.querySelector('#compose-view').style.display = 'none';
@@ -21,8 +22,10 @@ function load_mailbox(mailbox) {
   // Show the mailbox name
   document.querySelector('#emails-view').innerHTML = `<h3>${mailbox.charAt(0).toUpperCase() + mailbox.slice(1)}</h3>`;
   
+  // Sending GET request to retrieve a list of emails for the mailbox
   fetch('/emails/'+mailbox)
   .then(res=>res.json())
+  // display email one by one
   .then(emails=>{
     emails.forEach(email=>list_email(email,mailbox))
   })
@@ -31,17 +34,18 @@ function load_mailbox(mailbox) {
 }
 
 
+// Display an individual email
 function list_email(email,mailbox){
   // console.log('listing email from '+mailbox)
   // console.log(email)
 
-  // email div
+  // create an email div
   const e = document.createElement('div');
   e.id = 'email-item'
   e.className = 'row border border-dark mt-2 p-2';
   email.read ? e.className += ' bg-secondary' : null;
 
-  // recipient div
+  // create a recipient div
   const r = document.createElement('div');
   r.id = 'email-recipient';
   r.className = 'col';
@@ -49,20 +53,23 @@ function list_email(email,mailbox){
   ? r.innerHTML = email.sender
   : r.innerHTML = email.recipients[0];
 
-  // subject div
+  // create a subject div
   const s = document.createElement('div');
   s.id = 'email-subject'
   s.className = 'col-6';
   s.innerHTML = email.subject;
 
-  // timestamp div
+  // create a timestamp div
   const t = document.createElement('div');
   t.id = 'email-subject'
   t.className = 'col'
   t.innerHTML = email.timestamp;
 
+  // add recipient, subject, timestamp to email div as an email
   e.append(r,s,t)
+  // each email is clickable to display more info about the email to read
   e.addEventListener('click', () => read_email(email.id,mailbox));
+  // add email div to the list of emails
   document.querySelector('#emails-view').append(e)
 
 }
@@ -82,14 +89,16 @@ function compose_email(email) {
   if (email.recipients) {
     const original_sender = email.sender,
           original_subject = email.subject,
+          // check if the first 3 characters of an email are 'RE: '
           already_replied = email.subject.substring(0,3)==='RE:' ? '' : 'RE: ',
+          // generate pre-fill info for email body
           prefill = '\nOn '+email.timestamp+' '+original_sender+' wrote:\n'+ email.body;
     document.querySelector('#compose-form-title').innerHTML = 'Reply Email';
     document.querySelector('#compose-recipients').value = original_sender;
     document.querySelector('#compose-subject').value = already_replied+original_subject;
     document.querySelector('#compose-body').value = prefill;
   } else {
-    // Clear out composition fields
+    // Clear out composition fields for a new email
     document.querySelector('#compose-form-title').innerHTML = 'New Email';
     document.querySelector('#compose-recipients').value = '';
     document.querySelector('#compose-subject').value = '';
@@ -98,11 +107,12 @@ function compose_email(email) {
 
 }
 
+
 // send email
 function send_email() {
   const r = document.querySelector('#compose-recipients').value,
-  s = document.querySelector('#compose-subject').value,
-  b = document.querySelector('#compose-body').value;
+        s = document.querySelector('#compose-subject').value,
+        b = document.querySelector('#compose-body').value;
 
   fetch('/emails', {
     method: 'POST', 
