@@ -7,61 +7,12 @@ document.addEventListener('DOMContentLoaded', function() {
   document.querySelector('#compose').addEventListener('click', compose_email);
 
   // By default, load the inbox
-  load_mailbox('inbox');
-  
+  load_mailbox('inbox')
 });
 
 
-function compose_email(email) {
-  //console.log(email)
-  // Show compose view and hide other views
-  document.querySelector('#emails-view').style.display = 'none';
-  document.querySelector('#compose-view').style.display = 'block';
-  document.querySelector('#read-email').style.display = 'none';
-  document.querySelector('#compose-form').onsubmit = send_email;
-
-  // if email is not empty, it's  a reply email
-  if (email.recipients) {
-    const original_sender = email.sender,
-          original_subject = 'RE: '+email.subject,
-          prefill = '\nOn '+email.timestamp+' '+original_sender+' wrote:\n'+ email.body;
-    document.querySelector('#compose-form-title').innerHTML = 'Reply Email';
-    document.querySelector('#compose-recipients').value = original_sender;
-    document.querySelector('#compose-subject').value = original_subject;
-    document.querySelector('#compose-body').value = prefill;
-  } else {
-    // Clear out composition fields
-    document.querySelector('#compose-form-title').innerHTML = 'New Email';
-    document.querySelector('#compose-recipients').value = '';
-    document.querySelector('#compose-subject').value = '';
-    document.querySelector('#compose-body').value = '';
-  }
-
-  // send email
-  function send_email() {
-    // console.log('sending')
-    const r = document.querySelector('#compose-recipients').value,
-    s = document.querySelector('#compose-subject').value,
-    b = document.querySelector('#compose-body').value;
-
-    fetch('/emails', {
-      method: 'POST', 
-      body: JSON.stringify({
-        recipients: r,
-        subject: s,
-        body: b,
-      })
-    })
-    .then(res=>res.json());
-    load_mailbox('sent');
-    localStorage.clear();
-    return false;
-  };
-
-}
 
 function load_mailbox(mailbox) {
-
   // Show the mailbox and hide other views
   document.querySelector('#emails-view').style.display = 'block';
   document.querySelector('#compose-view').style.display = 'none';
@@ -79,10 +30,10 @@ function load_mailbox(mailbox) {
 
 }
 
-function list_email(email,mailbox){
 
-  // console.log('displaying'+mailbox)
-  //console.log(email)
+function list_email(email,mailbox){
+  // console.log('listing email from '+mailbox)
+  // console.log(email)
 
   // email div
   const e = document.createElement('div');
@@ -111,23 +62,78 @@ function list_email(email,mailbox){
   t.innerHTML = email.timestamp;
 
   e.append(r,s,t)
-  e.addEventListener('click', () => read_email(email.id));
+  e.addEventListener('click', () => read_email(email.id,mailbox));
   document.querySelector('#emails-view').append(e)
 
 }
 
-function read_email(id){
-  // console.log(id)
+
+// Compose email view for composing new mail and replying mail
+function compose_email(email) {
+  //console.log(email)
+
+  // Show compose view and hide other views
+  document.querySelector('#emails-view').style.display = 'none';
+  document.querySelector('#compose-view').style.display = 'block';
+  document.querySelector('#read-email').style.display = 'none';
+  document.querySelector('#compose-form').onsubmit = send_email;
+
+  // if email value is not empty, it's  a reply email
+  if (email.recipients) {
+    const original_sender = email.sender,
+          original_subject = email.subject,
+          already_replied = email.subject.substring(0,3)==='RE:' ? '' : 'RE: ',
+          prefill = '\nOn '+email.timestamp+' '+original_sender+' wrote:\n'+ email.body;
+    document.querySelector('#compose-form-title').innerHTML = 'Reply Email';
+    document.querySelector('#compose-recipients').value = original_sender;
+    document.querySelector('#compose-subject').value = already_replied+original_subject;
+    document.querySelector('#compose-body').value = prefill;
+  } else {
+    // Clear out composition fields
+    document.querySelector('#compose-form-title').innerHTML = 'New Email';
+    document.querySelector('#compose-recipients').value = '';
+    document.querySelector('#compose-subject').value = '';
+    document.querySelector('#compose-body').value = '';
+  }
+
+}
+
+// send email
+function send_email() {
+  const r = document.querySelector('#compose-recipients').value,
+  s = document.querySelector('#compose-subject').value,
+  b = document.querySelector('#compose-body').value;
+
+  fetch('/emails', {
+    method: 'POST', 
+    body: JSON.stringify({
+      recipients: r,
+      subject: s,
+      body: b,
+    })
+  })
+  .then(res=>res.json())
+  .then(()=>load_mailbox('sent'));
+  
+  return false;
+};
+
+
+function read_email(id,mailbox){
+  // console.log(id,mailbox)
   // Show the individual email and hide other views
   document.querySelector('#emails-view').style.display = 'none';
   document.querySelector('#compose-view').style.display = 'none';
   document.querySelector('#read-email').style.display = 'block';
 
+  // hiding reply and archive buttons in sent box
+  mailbox==='sent' ? document.querySelector('#buttons').style.display = 'none' : document.querySelector('#buttons').style.display = 'block';
+
   // GET data
   fetch("/emails/"+id)
   .then(res=>res.json())
   .then(email=>{
-    console.log(email);
+    // console.log(email);
     let archive_status;
     email.archived ? archive_status =  'Unarchive' : archive_status =  'Archive'; 
     mark_email(id);
@@ -146,6 +152,8 @@ function read_email(id){
 
 // Archive email 
 function update_email(id, action){
+
+  //console.log('archive email')
   let mode = null;
   console.log(id)
   switch(action){
@@ -166,8 +174,9 @@ function update_email(id, action){
     method: 'PUT', 
     body: mode
   })
-  .then(()=>load_mailbox('inbox'))
+  .then(window.location.reload())
   .catch(err=>console.log(err));
+
 }
 
 
