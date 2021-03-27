@@ -27,7 +27,7 @@ function load_mailbox(mailbox) {
   .then(res=>res.json())
   // display email one by one
   .then(emails=>{
-    emails.forEach(email=>list_email(email,mailbox))
+    emails.forEach(email=>list_email(email,mailbox));
   })
   .catch(err=>console.log(err))
 
@@ -114,6 +114,7 @@ function send_email() {
         s = document.querySelector('#compose-subject').value,
         b = document.querySelector('#compose-body').value;
 
+  // make POST request to send form values to database
   fetch('/emails', {
     method: 'POST', 
     body: JSON.stringify({
@@ -123,14 +124,16 @@ function send_email() {
     })
   })
   .then(res=>res.json())
+  // return to sent box
   .then(()=>load_mailbox('sent'));
-  
+  // stop further action
   return false;
 };
 
 
 function read_email(id,mailbox){
   // console.log(id,mailbox)
+
   // Show the individual email and hide other views
   document.querySelector('#emails-view').style.display = 'none';
   document.querySelector('#compose-view').style.display = 'none';
@@ -146,7 +149,9 @@ function read_email(id,mailbox){
     // console.log(email);
     let archive_status;
     email.archived ? archive_status =  'Unarchive' : archive_status =  'Archive'; 
+    // mark email as read when an email is opened
     mark_email(id);
+    // updating page with info returned from API
     document.querySelector('#read-email-sender').innerHTML = email.sender;
     document.querySelector('#read-email-r').innerHTML = email.recipients;
     document.querySelector('#read-email-s').innerHTML = email.subject;
@@ -162,10 +167,10 @@ function read_email(id,mailbox){
 
 // Archive email 
 function update_email(id, action){
-
   //console.log('archive email')
+
   let mode = null;
-  console.log(id)
+  // setting value based on value from the action arg
   switch(action){
     case 'Archive':
       mode = JSON.stringify({
@@ -184,6 +189,8 @@ function update_email(id, action){
     method: 'PUT', 
     body: mode
   })
+  // reload page to go back to inbox 
+  // alternatively .then(()=>load_mailbox('inbox'));
   .then(window.location.reload())
   .catch(err=>console.log(err));
 
